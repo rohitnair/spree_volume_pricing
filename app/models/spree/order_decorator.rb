@@ -1,7 +1,7 @@
 Spree::Order.class_eval do
   # override the add_variant functionality so that we can adjust the price based on possible volume adjustment
   def add_variant(variant, quantity=1)
-    current_item = contains?(variant)
+    current_item = find_line_item_by_variant(variant)
     price = variant.volume_price(quantity) # Added
     if current_item
       current_item.increment_quantity unless quantity > 1
@@ -15,17 +15,5 @@ Spree::Order.class_eval do
       current_item.save
     end
 
-    # populate line_items attributes for additional_fields entries
-    # that have populate => [:line_item]
-    Spree::Variant.additional_fields.select{|f| !f[:populate].nil? && f[:populate].include?(:line_item) }.each do |field| 
-      value = ""
-
-      if field[:only].nil? || field[:only].include?(:variant)
-        value = variant.send(field[:name].gsub(" ", "_").downcase)
-      elsif field[:only].include?(:product)
-        value = variant.product.send(field[:name].gsub(" ", "_").downcase)
-      end
-      current_item.update_attribute(field[:name].gsub(" ", "_").downcase, value)
-    end
   end
 end
